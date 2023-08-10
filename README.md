@@ -1,5 +1,17 @@
-### TODO
+# TODO APP
 
-flask --app app run
-poetry install
-poetry shell
+A TODO app in both Flask and FastAPI.
+
+## Installation instructions
+
+### Flask
+To install the dependencies locally, run:
+1. `poetry install`
+2. `poetry shell`
+3. `flask --app app.py --debug run`
+   
+The server will then be running locally on http://127.0.0.1:5000
+
+curl -X POST http://127.0.0.1:5000/3 -H "Content-Type: application/json" -d '{"id": 4,"description": "created","priority": 1}'  
+curl -X DELETE http://127.0.0.1:5000/3
+curl -X PUT http://127.0.0.1:5000/3 -H "Content-Type: application/json" -d '{"id": 3,"description": "changed","priority": 3}'  
