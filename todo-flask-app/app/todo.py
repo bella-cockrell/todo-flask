@@ -27,7 +27,7 @@ def get_post(id: int) -> Response:
 @todo_blueprint.post("/<int:id>")
 def create_post(id: int) -> Response:
     new_post = request.json
-    posts.example_blueprintend(new_post)
+    posts.append(new_post)
     return redirect(url_for("get_post", id=id), 201)
 
 
