@@ -1,6 +1,6 @@
 from flask import Blueprint, Response, redirect, request, url_for
 
-from .db import posts
+from app.db.db import posts
 
 todo_blueprint = Blueprint("todo_blueprint", __name__)
 

@@ -1,7 +1,7 @@
 from flask import Flask
 
-from .health import health_blueprint
-from .todo import todo_blueprint
+from app.controllers.health import health_blueprint
+from app.controllers.todo import todo_blueprint
 
 app = Flask(__name__)
 
