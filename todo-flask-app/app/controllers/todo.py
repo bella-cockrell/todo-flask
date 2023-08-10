@@ -12,14 +12,15 @@ todo_blueprint = Blueprint("todo_blueprint", __name__)
 def get_all_posts() -> Response:
     schema = PostSchema(many=True)
 
+    #TODO: validation for query string
     if request.args.get("priority"):
         result = []
         for post in posts:
             if post.priority == request.args.get("priority", type=int):
                 result.append(post)
+                return schema.dump(result), 200
             else:
-                continue
-        return result
+                return schema.dump(result), 200
     else:
         return schema.dump(posts), 200
 
@@ -28,16 +29,19 @@ def get_all_posts() -> Response:
 def get_post(id: int) -> Response:
     schema = PostSchema()
     result = list(filter(lambda post: post.id == id, posts))
-    return schema.dump(result[0])
+    if len(result)== 0:
+        return redirect("not_found")
+    else:
+        return schema.dump(result[0])
 
 
 @todo_blueprint.post("/<int:id>")
 def create_post(id: int) -> Response:
-    request_data = request.json
+    create_request_data = request.json
     schema = PostSchema()
 
     try:
-        result: Post = schema.load(request_data)
+        result: Post = schema.load(create_request_data)
         print(f"result: {result}")
     except ValidationError as err:
         return jsonify(err.messages, 400)
@@ -50,13 +54,23 @@ def create_post(id: int) -> Response:
 
 @todo_blueprint.put("/<int:id>")
 def update_post(id: int) -> Response:
-    updated_post = request.json
-    for post in posts:
-        if post["id"] == id:
-            post.update(updated_post)
-        else:
-            continue
-    return redirect(url_for("get_post", id=id), 201)
+    update_request_data = request.json
+    schema = PostSchema()
+
+    try:
+        result: Post = schema.load(update_request_data)
+    except ValidationError as err:
+        return jsonify(err.messages, 400)
+
+    found_post = list(filter(lambda post: post.id == result.id, posts))
+    index_of_found_post = posts.index(found_post[0])
+
+    if len(found_post) == 0:
+        return redirect("not_found")
+    else:
+        posts[index_of_found_post] = result
+        return redirect(url_for("todo_blueprint.get_post", id=id), 201)
+
 
 
 @todo_blueprint.delete("/<int:id>")
