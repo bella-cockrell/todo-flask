@@ -1,34 +1,51 @@
-from flask import Blueprint, Response, redirect, request, url_for
+from flask import Blueprint, Response, jsonify, redirect, request, url_for
+from marshmallow import ValidationError
 
 from app.db.db import posts
+from app.models.post import Post
+from app.validation.post import PostSchema
 
 todo_blueprint = Blueprint("todo_blueprint", __name__)
 
 
 @todo_blueprint.get("/")
 def get_all_posts() -> Response:
+    schema = PostSchema(many=True)
+
     if request.args.get("priority"):
         result = []
         for post in posts:
-            if post["priority"] == request.args.get("priority", type=int):
+            if post.priority == request.args.get("priority", type=int):
                 result.append(post)
             else:
                 continue
         return result
     else:
-        return posts, 200
+        return schema.dump(posts), 200
 
 
 @todo_blueprint.get("/<int:id>")
 def get_post(id: int) -> Response:
-    return [post for post in posts if post["id"] == id], 200
+    schema = PostSchema()
+    result = list(filter(lambda post: post.id == id, posts))
+    return schema.dump(result[0])
 
 
 @todo_blueprint.post("/<int:id>")
 def create_post(id: int) -> Response:
-    new_post = request.json
-    posts.append(new_post)
-    return redirect(url_for("get_post", id=id), 201)
+    request_data = request.json
+    schema = PostSchema()
+
+    try:
+        result: Post = schema.load(request_data)
+        print(f"result: {result}")
+    except ValidationError as err:
+        return jsonify(err.messages, 400)
+
+    posts.append(result)
+
+    response_data = schema.dump(result)
+    return response_data, 201
 
 
 @todo_blueprint.put("/<int:id>")
