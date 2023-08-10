@@ -75,12 +75,13 @@ def update_post(id: int) -> Response:
 
 @todo_blueprint.delete("/<int:id>")
 def delete_post(id: int) -> Response:
-    for post in posts:
-        if post["id"] == id:
-            posts.remove(post)
-        else:
-            continue
-    return posts, 204
+    found_post = list(filter(lambda post: post.id == id, posts))
+
+    if len(found_post) == 0:
+        return redirect("not_found")
+    else:
+        posts.remove(found_post[0])
+        return redirect("get_all_posts"), 201
 
 
 @todo_blueprint.errorhandler(404)
