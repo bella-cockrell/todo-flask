@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "todo-flask"
+version = "0.1.0"
+description = ""
+authors = ["Bella Cockrell <56876663+bella-cockrell@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Flask = "^2.3.2"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.7.0"
+flake8 = "^6.1.0"
+pyright = "^1.1.321"
+pytest = "^7.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
