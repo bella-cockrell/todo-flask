@@ -1,4 +1,4 @@
-from flask import Flask, Response, request, redirect, url_for
+from flask import Flask, Response, redirect, request, url_for
 
 posts = [
     {"id": 1, "description": "hello", "priority": 1},
