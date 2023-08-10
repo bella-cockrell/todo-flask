@@ -1,3 +1,5 @@
+from typing import Any
+
 from flask import Blueprint, Response, jsonify, redirect, request, url_for
 from marshmallow import ValidationError
 
@@ -9,52 +11,46 @@ todo_blueprint = Blueprint("todo_blueprint", __name__)
 
 
 @todo_blueprint.get("/")
-def get_all_posts() -> Response:
+def get_all_posts() -> tuple[Response, int]:
     schema = PostSchema(many=True)
+    priority_query = request.args.get("priority", type=int)
 
-    #TODO: validation for query string
-    if request.args.get("priority"):
-        result = []
-        for post in posts:
-            if post.priority == request.args.get("priority", type=int):
-                result.append(post)
-                return schema.dump(result), 200
-            else:
-                return schema.dump(result), 200
+    if priority_query:
+        result = [post for post in posts if post.priority == priority_query]
+        return jsonify(schema.dump(result)), 200
     else:
-        return schema.dump(posts), 200
+        return jsonify(schema.dump(posts)), 200
 
 
 @todo_blueprint.get("/<int:id>")
-def get_post(id: int) -> Response:
+def get_post(id) -> tuple[Response, int]:
     schema = PostSchema()
     result = list(filter(lambda post: post.id == id, posts))
-    if len(result)== 0:
-        return redirect("not_found")
+    if len(result) == 0:
+        return jsonify([]), 200
     else:
-        return schema.dump(result[0])
+        return jsonify(schema.dump(result[0])), 200
 
 
 @todo_blueprint.post("/<int:id>")
 def create_post(id: int) -> Response:
-    create_request_data = request.json
+    create_request_data: Any = request.json
     schema = PostSchema()
 
     try:
-        result: Post = schema.load(create_request_data)
-        print(f"result: {result}")
+        result = schema.load(create_request_data)
     except ValidationError as err:
         return jsonify(err.messages, 400)
 
     posts.append(result)
 
     response_data = schema.dump(result)
-    return response_data, 201
+    return jsonify(response_data, 201)
 
 
 @todo_blueprint.put("/<int:id>")
 def update_post(id: int) -> Response:
-    update_request_data = request.json
+    update_request_data: Any = request.json
     schema = PostSchema()
 
     try:
@@ -72,7 +68,6 @@ def update_post(id: int) -> Response:
         return redirect(url_for("todo_blueprint.get_post", id=id), 201)
 
 
-
 @todo_blueprint.delete("/<int:id>")
 def delete_post(id: int) -> Response:
     found_post = list(filter(lambda post: post.id == id, posts))
@@ -86,4 +81,4 @@ def delete_post(id: int) -> Response:
 
 @todo_blueprint.errorhandler(404)
 def not_found(error: int | Exception) -> Response:
-    return f"<p>{error}</p>", 404
+    return jsonify(error, 404)

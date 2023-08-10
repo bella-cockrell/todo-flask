@@ -20,3 +20,26 @@ isort = "^5.12.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs"
+]
+defineConstant = { DEBUG = true }
+stubPath = "src/stubs"
+venv = "poetry"
+
+reportMissingImports = true
+reportMissingTypeStubs = true
+
+pythonVersion = "3.10"
+pythonPlatform = "MacOS"
+
+executionEnvironments = [
+  { root = "todo-flask-app/app", pythonVersion = "3.10" },
+  { root = "todo-flask-app/tests", extraPaths = ["todo-flask-app/tests/unit", "todo-flask-app/tests/e2e", "todo-flask-app/app" ]},
+  { root = "todo-flask-app" }
+]
