@@ -38,12 +38,13 @@ def get_post_by_id(
 
 
 @app.post("/")
-def create_post(post_req: Post) -> List[Post]:
+def create_post(post_req: Post) -> Post:
     already_exists = list(filter(lambda post: post_req.id == post.id, posts))
     if len(already_exists) >= 1:
         raise HTTPException(status_code=400, detail="User already created")
     posts.append(post_req)
-    created_post = list(filter(lambda post: post_req.id == post.id, posts))
+    created_post_index = posts.index(post_req)
+    created_post = posts.pop(created_post_index)
     return created_post
 
 
