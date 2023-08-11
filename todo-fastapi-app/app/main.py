@@ -12,7 +12,6 @@ def root():
 
 @app.get("/")
 def get_all_posts(priority: int | None = None):
-
     if priority:
         return [post for post in posts if post["priority"] == priority]
     return posts
@@ -20,7 +19,7 @@ def get_all_posts(priority: int | None = None):
 
 @app.get("/{id}")
 def get_post_by_id(id: int):
-    return {"item_id": id}
+    return list(filter(lambda post: post["id"] == id, posts))
 
 
 @app.post("/")
