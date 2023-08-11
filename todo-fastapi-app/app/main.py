@@ -1,6 +1,7 @@
-from typing import Any, List
-from fastapi import FastAPI, HTTPException
-from pydantic import HttpUrl
+from typing import Annotated, List
+from fastapi import FastAPI, HTTPException, Query
+import requests
+
 
 app = FastAPI()
 
@@ -14,7 +15,15 @@ def root():
 
 
 @app.get("/")
-def get_all_posts(priority: int | None = None) -> List[dict]:
+def get_all_posts(
+    priority: Annotated[
+        int | None,
+        Query(
+            title="Priority integer",
+            description="Priority integer for the urgency of the post item. The lower the number, the more urgent the item is.",
+        ),
+    ] = None
+) -> List[dict]:
     if priority:
         return [post for post in posts if post["priority"] == priority]
     return posts
