@@ -2,9 +2,9 @@
 
 A TODO app in both Flask and FastAPI.
 
-## Installation instructions
+## Flask
 
-### Flask
+### Install
 To install the dependencies locally, run:
 1. `poetry install`
 2. `poetry shell`
@@ -21,9 +21,25 @@ curl -X DELETE http://127.0.0.1:5000/3
 curl -X PUT http://127.0.0.1:5000/3 -H "Content-Type: application/json" -d '{"id": 3,"description": "changed","priority": 3}'  
 
 ```
-## Testing
+### Testing
 This app uses Pytest for testing. To run the test suite, run `make test`.
 
-## Tools
+### Tools
 This app uses Black as a code formatter and isort to arrange imports. Run `make lint` to clean up your code.
 
+## FastAPI
+
+### Install
+To install the dependencies locally, run:
+1. `poetry install`
+2. `poetry shell`
+3. `make run`
+    
+The server will then be running locally on http://127.0.0.1:8000
+
+## Notes
+
+### Poetry
+To start create a new .toml file, run `poetry init`.
+
+To add a new package to Poetry, run `poetry add <package_name>` and it'll add the latest version.
