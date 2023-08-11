@@ -32,7 +32,7 @@ def get_post(id) -> tuple[Response, int]:
         return jsonify(schema.dump(result[0])), 200
 
 
-@todo_blueprint.post("/<int:id>")
+@todo_blueprint.post("/>")
 def create_post(id: int) -> Response:
     create_request_data: Any = request.json
     schema = PostSchema()
