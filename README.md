@@ -38,6 +38,15 @@ To install the dependencies locally, run:
 The server will then be running locally on http://127.0.0.1:8000
 You will also be able to see the Swagger docs on http://127.0.0.1:8000/docs
 
+To test out the endpoints, you can use the Swagger docs above, or run the following requests in a terminal:
+
+```bash
+curl -X POST http://127.0.0.1:8000 -H "Content-Type: application/json" -d '{"id": 4,"description": "created","priority": 1}'  
+
+curl -X DELETE http://127.0.0.1:8000/3
+
+curl -X PUT http://127.0.0.1:8000/3 -H "Content-Type: application/json" -d '{"id": 3,"description": "changed","priority": 3}'  
+
 ## Notes
 
 ### Poetry

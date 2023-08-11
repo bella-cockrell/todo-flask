@@ -1,8 +1,16 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 
 app = FastAPI()
 
 from app.db.posts import posts
+
+
+class Post(BaseModel):
+    id: int
+    description: str
+    title: str | None = None
+    priority: int | None = None
 
 
 @app.get("/health_check")
@@ -23,8 +31,9 @@ def get_post_by_id(id: int):
 
 
 @app.post("/")
-def create_post():
-    return {"message": "Hello World"}
+def create_post(post: Post):
+    posts.append(dict(post))
+    return post
 
 
 @app.put("/")
