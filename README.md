@@ -36,6 +36,7 @@ To install the dependencies locally, run:
 3. `make run`
     
 The server will then be running locally on http://127.0.0.1:8000
+You will also be able to see the Swagger docs on http://127.0.0.1:8000/docs
 
 ## Notes
 
