@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from typing import Any, List
+from fastapi import FastAPI, HTTPException
+from pydantic import HttpUrl
 
 app = FastAPI()
 
@@ -19,19 +21,28 @@ def get_all_posts(priority: int | None = None):
 
 
 @app.get("/{id}")
-def get_post_by_id(id: int):
+def get_post_by_id(id: int) -> List:
     return list(filter(lambda post: post["id"] == id, posts))
 
 
 @app.post("/")
-def create_post(post: Post):
-    posts.append(dict(post))
-    return post
+def create_post(post_req: Post) -> List:
+    already_exists = list(filter(lambda post: post_req.id == post["id"], posts))
+    if len(already_exists) >= 1:
+        raise HTTPException(status_code=400, detail="User already created")
+    posts.append(dict(post_req))
+    created_post = list(filter(lambda post: post_req.id == post["id"], posts))
+    return created_post
 
 
 @app.put("/")
-def update_post():
-    return {"message": "Hello World"}
+def update_post(put_req: Post) -> dict:
+    found_post = list(filter(lambda post: put_req.id == post["id"], posts))
+    if len(found_post) == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    index_of_found_post = posts.index(found_post[0])
+    posts[index_of_found_post] = dict(put_req)
+    return posts[index_of_found_post]
 
 
 @app.delete("/")
