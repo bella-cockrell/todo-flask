@@ -1,16 +1,9 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 
 app = FastAPI()
 
 from app.db.posts import posts
-
-
-class Post(BaseModel):
-    id: int
-    description: str
-    title: str | None = None
-    priority: int | None = None
+from app.models.post_model import Post
 
 
 @app.get("/health_check")
