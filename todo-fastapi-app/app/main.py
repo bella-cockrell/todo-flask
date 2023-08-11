@@ -1,7 +1,7 @@
 from typing import Annotated, List
-from fastapi import FastAPI, HTTPException, Query
-import requests
 
+import requests
+from fastapi import FastAPI, HTTPException, Path, Query
 
 app = FastAPI()
 
@@ -21,6 +21,7 @@ def get_all_posts(
         Query(
             title="Priority integer",
             description="Priority integer for the urgency of the post item. The lower the number, the more urgent the item is.",
+            ge=1,
         ),
     ] = None
 ) -> List[dict]:
@@ -30,7 +31,9 @@ def get_all_posts(
 
 
 @app.get("/{id}")
-def get_post_by_id(id: int) -> List[dict]:
+def get_post_by_id(
+    id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
+) -> List[dict]:
     return list(filter(lambda post: post["id"] == id, posts))
 
 
@@ -55,7 +58,9 @@ def update_post(put_req: Post) -> dict:
 
 
 @app.delete("/")
-def delete_post(id: int) -> None:
+def delete_post(
+    id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
+) -> None:
     found_post = list(filter(lambda post: post["id"] == id, posts))
     if len(found_post) == 0:
         raise HTTPException(status_code=404, detail="Post not found")
