@@ -14,19 +14,19 @@ def root():
 
 
 @app.get("/")
-def get_all_posts(priority: int | None = None):
+def get_all_posts(priority: int | None = None) -> List[dict]:
     if priority:
         return [post for post in posts if post["priority"] == priority]
     return posts
 
 
 @app.get("/{id}")
-def get_post_by_id(id: int) -> List:
+def get_post_by_id(id: int) -> List[dict]:
     return list(filter(lambda post: post["id"] == id, posts))
 
 
 @app.post("/")
-def create_post(post_req: Post) -> List:
+def create_post(post_req: Post) -> List[dict]:
     already_exists = list(filter(lambda post: post_req.id == post["id"], posts))
     if len(already_exists) >= 1:
         raise HTTPException(status_code=400, detail="User already created")
@@ -46,5 +46,9 @@ def update_post(put_req: Post) -> dict:
 
 
 @app.delete("/")
-def delete_post():
-    return {"message": "Hello World"}
+def delete_post(id: int) -> None:
+    found_post = list(filter(lambda post: post["id"] == id, posts))
+    if len(found_post) == 0:
+        raise HTTPException(status_code=404, detail="Post not found")
+    else:
+        posts.remove(found_post[0])
