@@ -21,6 +21,8 @@ curl -X DELETE http://127.0.0.1:5000/3
 curl -X PUT http://127.0.0.1:5000/3 -H "Content-Type: application/json" -d '{"id": 3,"description": "changed","priority": 3}'  
 
 ```
+## Testing
+This app uses Pytest for testing. To run the test suite, run `make test`.
 
 ## Tools
 This app uses Black as a code formatter and isort to arrange imports. Run `make lint` to clean up your code.

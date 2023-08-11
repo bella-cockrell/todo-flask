@@ -4,3 +4,6 @@ lint:
 
 run:
 	flask --app app/app.py --debug run
+
+test:
+	pytest
