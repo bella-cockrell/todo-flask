@@ -1,27 +1,65 @@
 from typing import Annotated
+from flask import Response
 
 import requests
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
+from app.helpers.oauth2 import fake_decode_token, fake_hash_password
 from app.models.post_model import PostModel
-from app.models.user_model import UserModel
+from app.models.user_models import UserInDBModel, UserModel
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    user = fake_decode_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+            # 401 should return header as part of spec
+        )
+    return user
+
+
+def get_current_active_user(
+    current_user: Annotated[UserModel, Depends(get_current_user)]
+):
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+@app.post("/token")
+def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
+    user_dict = fake_users_db.get(form_data.username)
+    if not user_dict:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    user = UserInDBModel(**user_dict)
+    hashed_password = fake_hash_password(form_data.password)
+    if not hashed_password == user.hashed_password:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    return {"access_token": user.username, "token_type": "bearer"}
+    #this is the only part that you need to be manually compliant with OpenAPI
+
+
+@app.get("/users/me")
+def read_users_me(
+    current_user: Annotated[UserModel, Depends(get_current_active_user)]
+):
+    return current_user
 
 
 @app.get("/health_check")
 def root():
     return {"message": "Hello World"}
-
-
-@app.get("/test_auth")
-def test_auth(token: Annotated[str, Depends(oauth2_scheme)]):
-    return {"token": token}
 
 
 @app.get("/")
