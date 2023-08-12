@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 
-class Post(BaseModel):
+class PostModel(BaseModel):
     # UUID maybe generated instead?
     id: int = Field(
         gt=0,

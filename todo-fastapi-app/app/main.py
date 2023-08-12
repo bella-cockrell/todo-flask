@@ -1,17 +1,27 @@
 from typing import Annotated
 
 import requests
-from fastapi import FastAPI, HTTPException, Path, Query
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer
 
 app = FastAPI()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 from app.db.posts import posts
-from app.models.post_model import Post
+from app.models.post_model import PostModel
+from app.models.user_model import UserModel
 
 
 @app.get("/health_check")
 def root():
     return {"message": "Hello World"}
+
+
+@app.get("/test_auth")
+def test_auth(token: Annotated[str, Depends(oauth2_scheme)]):
+    return {"token": token}
 
 
 @app.get("/")
@@ -23,8 +33,9 @@ def get_all_posts(
             description="Priority integer for the urgency of the post item. The lower the number, the more urgent the item is.",
             ge=1,
         ),
-    ] = None
-) -> list[Post]:
+    ] = None,
+    response_description="All created posts",
+) -> list[PostModel]:
     if priority:
         return [post for post in posts if post.priority == priority]
     return posts
@@ -33,12 +44,12 @@ def get_all_posts(
 @app.get("/{id}")
 def get_post_by_id(
     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
-) -> list[Post]:
+) -> list[PostModel]:
     return list(filter(lambda post: post.id == id, posts))
 
 
 @app.post("/")
-def create_post(post_req: Post) -> Post:
+def create_post(post_req: PostModel) -> PostModel:
     already_exists = list(filter(lambda post: post_req.id == post.id, posts))
     if len(already_exists) >= 1:
         raise HTTPException(status_code=400, detail="User already created")
@@ -49,21 +60,21 @@ def create_post(post_req: Post) -> Post:
 
 
 @app.put("/")
-def update_post(put_req: Post) -> Post:
+def update_post(put_req: PostModel) -> PostModel:
     found_post = list(filter(lambda post: put_req.id == post.id, posts))
     if len(found_post) == 0:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail="PostModel not found")
     index_of_found_post = posts.index(found_post[0])
     posts[index_of_found_post] = put_req
     return posts[index_of_found_post]
 
 
-@app.delete("/")
+@app.delete("/", status_code=status.HTTP_200_OK)
 def delete_post(
     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
 ) -> None:
     found_post = list(filter(lambda post: post.id == id, posts))
     if len(found_post) == 0:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail="PostModel not found")
     else:
         posts.remove(found_post[0])
