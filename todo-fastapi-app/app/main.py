@@ -44,7 +44,7 @@ def create_post(post_req: Post) -> Post:
         raise HTTPException(status_code=400, detail="User already created")
     posts.append(post_req)
     created_post_index = posts.index(post_req)
-    created_post = posts.pop(created_post_index)
+    created_post = posts[created_post_index]
     return created_post
 
 
