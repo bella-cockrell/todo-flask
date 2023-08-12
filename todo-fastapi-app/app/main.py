@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 import requests
 from fastapi import FastAPI, HTTPException, Path, Query
@@ -24,7 +24,7 @@ def get_all_posts(
             ge=1,
         ),
     ] = None
-) -> List[Post]:
+) -> list[Post]:
     if priority:
         return [post for post in posts if post.priority == priority]
     return posts
@@ -33,7 +33,7 @@ def get_all_posts(
 @app.get("/{id}")
 def get_post_by_id(
     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
-) -> List[Post]:
+) -> list[Post]:
     return list(filter(lambda post: post.id == id, posts))
 
 
