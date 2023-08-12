@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from time import timezone
 
 from pydantic import BaseModel, Field
 
