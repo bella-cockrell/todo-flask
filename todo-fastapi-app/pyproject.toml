@@ -17,6 +17,7 @@ passlib = {version = "^1.7.4", extras = ["bcrpyt"]}
 python-dotenv = "^1.0.0"
 pydantic-settings = "^2.0.2"
 bcrypt = "^4.0.1"
+sqlalchemy = "^2.0.19"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
