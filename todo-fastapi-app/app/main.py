@@ -8,17 +8,16 @@ from jose import JWTError, jwt
 # import dbs
 from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
-
-# import gateways
-from app.gateways.users_gateway import get_user
-
-# import auth
-from app.helpers.oauth2 import authenticate_user, create_access_token
-
 # import domain_models
 from app.domain_models.post_domain_model import PostDomainModel
-from app.domain_models.token_domain_model import TokenDataDomainModel, TokenDomainModel
-from app.domain_models.user_domain_model import UserDomainModel
+from app.domain_models.token_domain_model import (TokenDataDomainModel,
+                                                  TokenDomainModel)
+from app.domain_models.user_domain_model import (UserDomainModel,
+                                                 UserInDBDomainModel)
+# import gateways
+from app.gateways.users_gateway import get_user
+# import auth
+from app.helpers.oauth2 import create_access_token, verify_password
 
 app = FastAPI()
 
@@ -28,6 +27,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 SECRET_KEY = "402af2408c510819c72aef58836c6a7e12e9af0c1a21bfa45c14dd20ef869563"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+
+def authenticate_user(
+    fake_db, username: str, password: str
+) -> UserInDBDomainModel | bool:
+    user = get_user(fake_db, username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):

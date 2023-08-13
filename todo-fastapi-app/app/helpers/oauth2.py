@@ -3,11 +3,6 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# import gateways
-from app.gateways.users_gateway import get_user
-# import domain_models
-from app.domain_models.user_domain_model import UserInDBDomainModel
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # randomly generated key
@@ -36,12 +31,3 @@ def create_access_token(
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-
-def authenticate_user(fake_db, username: str, password: str) -> UserInDBDomainModel | bool:
-    user = get_user(fake_db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
