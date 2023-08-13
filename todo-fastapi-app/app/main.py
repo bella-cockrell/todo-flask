@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
@@ -6,68 +6,26 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# import db
+# import dbs
 from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
-
+# import gateways
+from app.gateways.users_gateway import get_user
+# import auth
+from app.helpers.oauth2 import authenticate_user, create_access_token
 # import models
 from app.models.post_model import PostModel
 from app.models.token_model import TokenDataModel, TokenModel
-from app.models.user_models import UserInDBModel, UserModel
-
-# import gateway
-from app.gateways.users_gateway import get_user
+from app.models.user_models import UserModel
 
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # randomly generated key
 SECRET_KEY = "402af2408c510819c72aef58836c6a7e12e9af0c1a21bfa45c14dd20ef869563"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-def verify_password(plain_password, hashed_password) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password):
-    return pwd_context.hash(password)
-
-
-def authenticate_user(fake_db, username: str, password: str) -> UserInDBModel | bool:
-    user = get_user(fake_db, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
-
-
-def create_access_token(
-    data: dict,
-    expires_delta: timedelta | None = None,
-) -> str:
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-def fake_decode_token(token) -> UserInDBModel | None:
-    # This doesn't provide any security at all
-    # Check the next version
-    user = get_user(fake_users_db, token)
-    return user
-
-
-def fake_hash_password(password: str):
-    return "fakehashed" + password
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
@@ -89,15 +47,6 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         raise credentials_exception
     return user
 
-
-def get_current_active_user(
-    current_user: Annotated[UserModel, Depends(get_current_user)]
-):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
 @app.post("/token", response_model=TokenModel)
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -118,7 +67,7 @@ def login_for_access_token(
 
 
 @app.get("/users/me")
-def read_users_me(current_user: Annotated[UserModel, Depends(get_current_active_user)]):
+def read_users_me(current_user: Annotated[UserModel, Depends(get_current_user)]):
     return current_user
 
 
