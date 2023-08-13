@@ -6,11 +6,17 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+# import db
 from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
+
+# import models
 from app.models.post_model import PostModel
 from app.models.token_model import TokenDataModel, TokenModel
 from app.models.user_models import UserInDBModel, UserModel
+
+# import gateway
+from app.gateways.users_gateway import get_user
 
 app = FastAPI()
 
@@ -20,12 +26,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = "402af2408c510819c72aef58836c6a7e12e9af0c1a21bfa45c14dd20ef869563"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-
-def get_user(db, username: str | None) -> UserInDBModel | None:
-    if username in db:
-        user_dict = db[username]
-        return UserInDBModel(**user_dict)
 
 
 def verify_password(plain_password, hashed_password) -> bool:
