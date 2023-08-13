@@ -1,7 +1,7 @@
-from app.models.user_models import UserInDBModel
+from app.domain_models.user_domain_model import UserInDBDomainModel
 
 
-def get_user(db, username: str | None) -> UserInDBModel | None:
+def get_user(db, username: str | None) -> UserInDBDomainModel | None:
     if username in db:
         user_dict = db[username]
-        return UserInDBModel(**user_dict)
+        return UserInDBDomainModel(**user_dict)

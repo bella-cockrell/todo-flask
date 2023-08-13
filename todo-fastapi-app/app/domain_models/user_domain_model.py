@@ -1,12 +1,20 @@
 from pydantic import BaseModel
+from app.domain_models.post_domain_model import PostDomainModel
 
-
-class UserDomainModel(BaseModel):
-    username: str
+class UserBaseDomain(BaseModel):
     email: str | None = None
-    full_name: str | None = None
-    disabled: bool | None = None
 
+class UserCreate(UserBaseDomain):
+    password: str
+
+class UserDomainModel(UserBaseDomain):
+    id: int
+    username: str
+    full_name: str | None = None
+    posts: list[PostDomainModel] = []
+
+    class Config():
+        orm_mode = True
 
 class UserInDBDomainModel(UserDomainModel):
     hashed_password: str
