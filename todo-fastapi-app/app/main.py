@@ -1,6 +1,5 @@
 from datetime import timedelta
 from typing import Annotated
-
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -18,8 +17,22 @@ from app.domain_models.user_domain_model import (UserDomainModel,
 from app.gateways.users_gateway import get_user
 # import auth
 from app.helpers.oauth2 import create_access_token, verify_password
+# import db models
+from app.db import db_models
+# import db connection
+from app.db.database import SessionLocal, engine
+
+db_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+# dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
