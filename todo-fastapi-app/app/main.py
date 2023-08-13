@@ -8,14 +8,17 @@ from jose import JWTError, jwt
 # import dbs
 from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
+
 # import gateways
 from app.gateways.users_gateway import get_user
+
 # import auth
 from app.helpers.oauth2 import authenticate_user, create_access_token
-# import models
-from app.models.post_model import PostModel
-from app.models.token_model import TokenDataModel, TokenModel
-from app.models.user_models import UserModel
+
+# import domain_models
+from app.domain_models.post_domain_model import PostDomainModel
+from app.domain_models.token_domain_model import TokenDataDomainModel, TokenDomainModel
+from app.domain_models.user_domain_model import UserDomainModel
 
 app = FastAPI()
 
@@ -38,7 +41,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         username = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenDataModel(username=username)
+        token_data = TokenDataDomainModel(username=username)
     except JWTError:
         raise credentials_exception
     user = get_user(fake_users_db, username=token_data.username)
@@ -47,7 +50,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     return user
 
 
-@app.post("/token", response_model=TokenModel)
+@app.post("/token", response_model=TokenDomainModel)
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
@@ -67,7 +70,7 @@ def login_for_access_token(
 
 
 @app.get("/users/me")
-def read_users_me(current_user: Annotated[UserModel, Depends(get_current_user)]):
+def read_users_me(current_user: Annotated[UserDomainModel, Depends(get_current_user)]):
     return current_user
 
 
@@ -87,7 +90,7 @@ def get_all_posts(
         ),
     ] = None,
     response_description="All created posts",
-) -> list[PostModel]:
+) -> list[PostDomainModel]:
     if priority:
         return [post for post in posts if post.priority == priority]
     return posts
@@ -96,12 +99,12 @@ def get_all_posts(
 @app.get("/{id}")
 def get_post_by_id(
     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
-) -> list[PostModel]:
+) -> list[PostDomainModel]:
     return list(filter(lambda post: post.id == id, posts))
 
 
 @app.post("/")
-def create_post(post_req: PostModel) -> PostModel:
+def create_post(post_req: PostDomainModel) -> PostDomainModel:
     already_exists = list(filter(lambda post: post_req.id == post.id, posts))
     if len(already_exists) >= 1:
         raise HTTPException(status_code=400, detail="User already created")
@@ -112,7 +115,7 @@ def create_post(post_req: PostModel) -> PostModel:
 
 
 @app.put("/")
-def update_post(put_req: PostModel) -> PostModel:
+def update_post(put_req: PostDomainModel) -> PostDomainModel:
     found_post = list(filter(lambda post: put_req.id == post.id, posts))
     if len(found_post) == 0:
         raise HTTPException(status_code=404, detail="PostModel not found")
