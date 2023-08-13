@@ -1,31 +1,92 @@
+from datetime import datetime, timedelta
 from typing import Annotated
-from flask import Response
 
-import requests
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
-from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+from app.db.fake_users_db import fake_users_db
+from app.db.posts import posts
+from app.models.post_model import PostModel
+from app.models.token_model import TokenDataModel, TokenModel
+from app.models.user_models import UserInDBModel, UserModel
 
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# randomly generated key
+SECRET_KEY = "402af2408c510819c72aef58836c6a7e12e9af0c1a21bfa45c14dd20ef869563"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-from app.db.fake_users_db import fake_users_db
-from app.db.posts import posts
-from app.helpers.oauth2 import fake_decode_token, fake_hash_password
-from app.models.post_model import PostModel
-from app.models.user_models import UserInDBModel, UserModel
+
+def get_user(db, username: str | None) -> UserInDBModel | None:
+    if username in db:
+        user_dict = db[username]
+        return UserInDBModel(**user_dict)
+
+
+def verify_password(plain_password, hashed_password) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+def authenticate_user(fake_db, username: str, password: str) -> UserInDBModel | bool:
+    user = get_user(fake_db, username)
+    if not user:
+        return False
+    if not verify_password(password, user.hashed_password):
+        return False
+    return user
+
+
+def create_access_token(
+    data: dict,
+    expires_delta: timedelta | None = None,
+) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def fake_decode_token(token) -> UserInDBModel | None:
+    # This doesn't provide any security at all
+    # Check the next version
+    user = get_user(fake_users_db, token)
+    return user
+
+
+def fake_hash_password(password: str):
+    return "fakehashed" + password
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    user = fake_decode_token(token)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-            # 401 should return header as part of spec
-        )
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenDataModel(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(fake_users_db, username=token_data.username)
+    if user is None:
+        raise credentials_exception
     return user
 
 
@@ -36,24 +97,28 @@ def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-@app.post("/token")
-def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> dict:
-    user_dict = fake_users_db.get(form_data.username)
-    if not user_dict:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    user = UserInDBModel(**user_dict)
-    hashed_password = fake_hash_password(form_data.password)
-    if not hashed_password == user.hashed_password:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
 
-    return {"access_token": user.username, "token_type": "bearer"}
-    #this is the only part that you need to be manually compliant with OpenAPI
+@app.post("/token", response_model=TokenModel)
+def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+):
+    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username},  # pyright: ignore
+        expires_delta=access_token_expires,
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.get("/users/me")
-def read_users_me(
-    current_user: Annotated[UserModel, Depends(get_current_active_user)]
-):
+def read_users_me(current_user: Annotated[UserModel, Depends(get_current_active_user)]):
     return current_user
 
 
