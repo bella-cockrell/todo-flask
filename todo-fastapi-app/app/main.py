@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 # import dbs
 from app.db.fake_users_db import fake_users_db
@@ -46,6 +45,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     if user is None:
         raise credentials_exception
     return user
+
 
 @app.post("/token", response_model=TokenModel)
 def login_for_access_token(
