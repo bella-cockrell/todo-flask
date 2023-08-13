@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
+
 class PostBaseDomainModel(BaseModel):
     description: str = Field(description="The body text of the post")
     title: str | None = Field(default=None, description="Optional title of the post")
@@ -10,8 +11,10 @@ class PostBaseDomainModel(BaseModel):
         default=datetime.now(timezone.utc), description="Time of post creation"
     )
 
-class PostCreateDomainModel():
+
+class PostCreateDomainModel:
     pass
+
 
 class PostDomainModel(PostBaseDomainModel):
     # UUID maybe generated instead?
@@ -24,4 +27,3 @@ class PostDomainModel(PostBaseDomainModel):
 
     class Config:
         orm_mode = True
-
