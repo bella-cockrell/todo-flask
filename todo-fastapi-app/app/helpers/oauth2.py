@@ -5,8 +5,8 @@ from passlib.context import CryptContext
 
 # import gateways
 from app.gateways.users_gateway import get_user
-# import models
-from app.models.user_models import UserInDBModel
+# import domain_models
+from app.domain_models.user_domain_model import UserInDBDomainModel
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -38,7 +38,7 @@ def create_access_token(
     return encoded_jwt
 
 
-def authenticate_user(fake_db, username: str, password: str) -> UserInDBModel | bool:
+def authenticate_user(fake_db, username: str, password: str) -> UserInDBDomainModel | bool:
     user = get_user(fake_db, username)
     if not user:
         return False
