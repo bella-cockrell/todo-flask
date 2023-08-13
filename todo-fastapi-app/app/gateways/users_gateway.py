@@ -53,9 +53,9 @@ def get_all_posts(
 
 
 def create_post(
-    db: Session, post: post_domain_model.PostCreateDomainModel
+    db: Session, post: post_domain_model.PostCreateDomainModel, user_id: int
 ) -> db_models.PostDbModel:
-    db_post = db_models.PostDbModel()
+    db_post = db_models.PostDbModel(**post, owner_id=user_id)
     db.add(db_post)
     db.commit()
     db.refresh(db_post)
