@@ -1,33 +1,20 @@
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 # import db models
 from app.db import db_models
-
 # import db connection
 from app.db.database import SessionLocal, engine
-
-# import dbs
-from app.db.fake_users_db import fake_users_db
-from app.db.posts import posts
-from app.gateways.posts_gateway import (  # get_posts_by_priority,; pyright: ignore
-    create_post,
-    get_all_posts,
-)
-
 # import gateways
 from app.gateways.users_gateway import create_user, get_user_by_username
-
 # import auth
 from app.helpers.oauth2 import create_access_token, verify_password
-
 # import domain_models
-from app.schemas.post_schema import Post, PostCreate
 from app.schemas.token_schema import Token, TokenData
 from app.schemas.user_schema import User, UserCreate, UserInDB
 
@@ -111,8 +98,8 @@ def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/users/me")
-def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):
+@app.get("/users/me", response_model=User)
+def read_users_me(current_user: Annotated[User, Depends(get_current_user)]) -> User:
     return current_user
 
 
@@ -140,18 +127,18 @@ async def create_new_user(
     #     limit: int = 100,
     #     db: Session = Depends(get_db),
     # ) -> list[Post]:
-    #     if priority:
-    #         db_posts = get_posts_by_priority(db=db, priority=priority)
-    #         if db_posts is None:
-    #             raise HTTPException(status_code=404, detail="Post not found")
-    #         return db_posts
-    #     db_posts = get_all_posts(db=db, skip=skip, limit=limit)
-    #     if db_posts is None:
-    #         raise HTTPException(status_code=404, detail="Post not found")
-    #     return db_posts
-    #     # if priority:
-    #     #     return [post for post in posts if post.priority == priority]
-    #     # return posts
+    # #     if priority:
+    # #         db_posts = get_posts_by_priority(db=db, priority=priority)
+    # #         if db_posts is None:
+    # #             raise HTTPException(status_code=404, detail="Post not found")
+    # #         return db_posts
+    # #     db_posts = get_all_posts(db=db, skip=skip, limit=limit)
+    # #     if db_posts is None:
+    # #         raise HTTPException(status_code=404, detail="Post not found")
+    # #     return db_posts
+    # #     # if priority:
+    # #     #     return [post for post in posts if post.priority == priority]
+    # #     # return posts
 
     # @app.get("/posts/{id}")
     # def get_post_by_id(

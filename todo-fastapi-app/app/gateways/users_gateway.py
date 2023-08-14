@@ -4,7 +4,6 @@ from app.db.db_models import UserDbModel
 from app.helpers.oauth2 import get_password_hash
 from app.schemas.user_schema import UserCreate, UserInDB
 
-
 # def get_user(db, username: str | None) -> UserInDB | None:
 #     if username in db:
 #         user_dict = db[username]
