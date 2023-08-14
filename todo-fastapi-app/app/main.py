@@ -5,6 +5,10 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
+import requests
+from requests.exceptions import HTTPError
+from requests.auth import HTTPBasicAuth
+from getpass import getpass
 
 # import db models
 from app.db import db_models
@@ -25,6 +29,10 @@ from app.schemas.user_schema import User, UserCreate, UserInDB
 db_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+github_url = "https://api.github.com"
+github_url_invalid = "https://api.github.com/invalid"
+github_url_repos = "https://api.github.com/search/repositories"
 
 
 # dependency
@@ -82,7 +90,19 @@ def root():
 
 @app.get("/test_req")
 def test_request():
-    return {"request": "here it is"}
+    try:
+        res = requests.get(
+            github_url_repos,
+            params={"q": "requests+language:python"},
+            headers={"Accept": "application/vnd.github.v3.text-match+json"},
+        )
+        res.raise_for_status()
+    except HTTPError as http_err:
+        print({f"HTTPError: {http_err}"})
+    except Exception as ex:
+        print({f"Exception: {ex}"})
+    else:
+        return res.json()
 
 
 @app.post("/token", response_model=Token)
@@ -112,7 +132,7 @@ def read_users_me(current_user: Annotated[User, Depends(get_current_user)]) -> U
     return current_user
 
 
-@app.post("/users")
+@app.post("/users", response_model=User)
 async def create_new_user(
     user: UserCreate, db: Session = Depends(get_db)
 ) -> db_models.UserDbModel:
