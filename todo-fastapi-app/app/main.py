@@ -82,14 +82,17 @@ def get_current_user(
         raise credentials_exception
     return user
 
+async def return_hello_world():
+    return {"message": "Hello World"}
 
 @app.get("/")
-def root():
-    return {"message": "Hello World"}
+async def root() -> dict:
+    result = await return_hello_world()
+    return result
 
 
 @app.get("/test_req")
-def test_request():
+async def test_request() -> dict | None:
     try:
         res = requests.get(
             github_url_repos,
