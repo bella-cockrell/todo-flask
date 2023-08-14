@@ -8,12 +8,16 @@ from sqlalchemy.orm import Session
 
 # import db models
 from app.db import db_models
+
 # import db connection
 from app.db.database import SessionLocal, engine
+
 # import gateways
 from app.gateways.users_gateway import create_user, get_user_by_username
+
 # import auth
 from app.helpers.oauth2 import create_access_token, verify_password
+
 # import domain_models
 from app.schemas.token_schema import Token, TokenData
 from app.schemas.user_schema import User, UserCreate, UserInDB
@@ -76,6 +80,11 @@ def root():
     return {"message": "Hello World"}
 
 
+@app.get("/test_req")
+def test_request():
+    return {"request": "here it is"}
+
+
 @app.post("/token", response_model=Token)
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -103,7 +112,7 @@ def read_users_me(current_user: Annotated[User, Depends(get_current_user)]) -> U
     return current_user
 
 
-@app.post("/users", response_model=User)
+@app.post("/users")
 async def create_new_user(
     user: UserCreate, db: Session = Depends(get_db)
 ) -> db_models.UserDbModel:
