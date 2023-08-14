@@ -4,7 +4,7 @@ from app.schemas.post_schema import Post
 
 
 class UserBase(BaseModel):
-    email: str
+    username: str
 
 
 class UserCreate(UserBase):

@@ -1,30 +1,40 @@
 from datetime import timedelta
 from typing import Annotated
+
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
+from sqlalchemy.orm import Session
+
+# import db models
+from app.db import db_models
+
+# import db connection
+from app.db.database import SessionLocal, engine
 
 # import dbs
 from app.db.fake_users_db import fake_users_db
 from app.db.posts import posts
-# import domain_models
-from app.domain_models.post_domain_model import PostDomainModel
-from app.domain_models.token_domain_model import (TokenDataDomainModel,
-                                                  TokenDomainModel)
-from app.domain_models.user_domain_model import (UserDomainModel,
-                                                 UserInDBDomainModel)
+from app.gateways.posts_gateway import (  # get_posts_by_priority,; pyright: ignore
+    create_post,
+    get_all_posts,
+)
+
 # import gateways
-from app.gateways.users_gateway import get_user
+from app.gateways.users_gateway import create_user, get_user_by_username
+
 # import auth
 from app.helpers.oauth2 import create_access_token, verify_password
-# import db models
-from app.db import db_models
-# import db connection
-from app.db.database import SessionLocal, engine
+
+# import domain_models
+from app.schemas.post_schema import Post, PostCreate
+from app.schemas.token_schema import Token, TokenData
+from app.schemas.user_schema import User, UserCreate, UserInDB
 
 db_models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 
 # dependency
 def get_db():
@@ -34,6 +44,7 @@ def get_db():
     finally:
         db.close()
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # randomly generated key
@@ -42,10 +53,8 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
-def authenticate_user(
-    fake_db, username: str, password: str
-) -> UserInDBDomainModel | bool:
-    user = get_user(fake_db, username)
+def authenticate_user(email: str, password: str, db: Session) -> UserInDB | bool:
+    user = get_user_by_username(db, email)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -53,7 +62,9 @@ def authenticate_user(
     return user
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -64,20 +75,28 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         username = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenDataDomainModel(username=username)
+        token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = get_user_by_username(db=db, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
 
 
-@app.post("/token", response_model=TokenDomainModel)
+@app.get("/")
+def root():
+    return {"message": "Hello World"}
+
+
+@app.post("/token", response_model=Token)
 def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    db: Session = Depends(get_db),
 ):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    user = authenticate_user(
+        db=db, email=form_data.username, password=form_data.password
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -93,64 +112,82 @@ def login_for_access_token(
 
 
 @app.get("/users/me")
-def read_users_me(current_user: Annotated[UserDomainModel, Depends(get_current_user)]):
+def read_users_me(current_user: Annotated[User, Depends(get_current_user)]):
     return current_user
 
 
-@app.get("/health_check")
-def root():
-    return {"message": "Hello World"}
+@app.post("/users", response_model=User)
+async def create_new_user(
+    user: UserCreate, db: Session = Depends(get_db)
+) -> db_models.UserDbModel:
+    db_user = get_user_by_username(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    return create_user(db=db, user=user)
 
+    # @app.get("/posts", response_model=list[Post])
+    # def get_posts(
+    #     priority: Annotated[
+    #         int | None,
+    #         Query(
+    #             title="Priority integer",
+    #             description="Priority integer for the urgency of the post item. The lower the number, the more urgent the item is.",
+    #             ge=1,
+    #         ),
+    #     ] = None,
+    #     response_description="All created posts",
+    #     skip: int = 0,
+    #     limit: int = 100,
+    #     db: Session = Depends(get_db),
+    # ) -> list[Post]:
+    #     if priority:
+    #         db_posts = get_posts_by_priority(db=db, priority=priority)
+    #         if db_posts is None:
+    #             raise HTTPException(status_code=404, detail="Post not found")
+    #         return db_posts
+    #     db_posts = get_all_posts(db=db, skip=skip, limit=limit)
+    #     if db_posts is None:
+    #         raise HTTPException(status_code=404, detail="Post not found")
+    #     return db_posts
+    #     # if priority:
+    #     #     return [post for post in posts if post.priority == priority]
+    #     # return posts
 
-@app.get("/")
-def get_all_posts(
-    priority: Annotated[
-        int | None,
-        Query(
-            title="Priority integer",
-            description="Priority integer for the urgency of the post item. The lower the number, the more urgent the item is.",
-            ge=1,
-        ),
-    ] = None,
-    response_description="All created posts",
-) -> list[PostDomainModel]:
-    if priority:
-        return [post for post in posts if post.priority == priority]
-    return posts
+    # @app.get("/posts/{id}")
+    # def get_post_by_id(
+    #     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
+    # ) -> list[Post]:
+    #     return list(filter(lambda post: post.id == id, posts))
 
+    # @app.post("/users/{user_id}/posts", response_model=Post)
+    # def create_new_post(
+    #     user_id: int, post_req: PostCreate, db: Session = Depends(get_db)
+    # ) -> Post:
+    #     # result = create_post(db=db, post=post_req, user_id=user_id)
+    #     # print(result)
+    #     pass
 
-@app.get("/{id}")
-def get_post_by_id(
-    id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
-) -> list[PostDomainModel]:
-    return list(filter(lambda post: post.id == id, posts))
+    #     # already_exists = list(filter(lambda post: post_req.id == post.id, posts))
+    #     # if len(already_exists) >= 1:
+    #     #     raise HTTPException(status_code=400, detail="Post already created")
+    #     # posts.append(post_req)
+    #     # created_post_index = posts.index(post_req)
+    #     # created_post = posts[created_post_index]
+    #     # return created_post
 
+    # @app.put("/posts")
+    # def update_post(put_req: Post) -> Post:
+    #     found_post = list(filter(lambda post: put_req.id == post.id, posts))
+    #     if len(found_post) == 0:
+    #         raise HTTPException(status_code=404, detail="PostModel not found")
+    #     index_of_found_post = posts.index(found_post[0])
+    #     posts[index_of_found_post] = put_req
+    #     return posts[index_of_found_post]
 
-@app.post("/")
-def create_post(post_req: PostDomainModel) -> PostDomainModel:
-    already_exists = list(filter(lambda post: post_req.id == post.id, posts))
-    if len(already_exists) >= 1:
-        raise HTTPException(status_code=400, detail="User already created")
-    posts.append(post_req)
-    created_post_index = posts.index(post_req)
-    created_post = posts[created_post_index]
-    return created_post
-
-
-@app.put("/")
-def update_post(put_req: PostDomainModel) -> PostDomainModel:
-    found_post = list(filter(lambda post: put_req.id == post.id, posts))
-    if len(found_post) == 0:
-        raise HTTPException(status_code=404, detail="PostModel not found")
-    index_of_found_post = posts.index(found_post[0])
-    posts[index_of_found_post] = put_req
-    return posts[index_of_found_post]
-
-
-@app.delete("/", status_code=status.HTTP_200_OK)
-def delete_post(
-    id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
-) -> None:
+    # @app.delete("/posts", status_code=status.HTTP_200_OK)
+    # def delete_post(
+    #     id: Annotated[int, Path(title="The ID of the todo post", ge=1)]
+    # ) -> None:
     found_post = list(filter(lambda post: post.id == id, posts))
     if len(found_post) == 0:
         raise HTTPException(status_code=404, detail="PostModel not found")
