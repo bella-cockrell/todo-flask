@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 
-class PostBaseDomainModel(BaseModel):
+class PostBase(BaseModel):
     description: str = Field(description="The body text of the post")
     title: str | None = Field(default=None, description="Optional title of the post")
     priority: int = Field(gt=0, description="Priority must be greater than 0")
@@ -12,11 +12,11 @@ class PostBaseDomainModel(BaseModel):
     )
 
 
-class PostCreateDomainModel:
+class PostCreate:
     pass
 
 
-class PostDomainModel(PostBaseDomainModel):
+class Post(PostBase):
     # UUID maybe generated instead?
     id: int = Field(
         gt=0,
