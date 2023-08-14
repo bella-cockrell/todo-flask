@@ -86,7 +86,7 @@ async def return_hello_world():
     return {"message": "Hello World"}
 
 @app.get("/")
-async def root() -> dict:
+async def hello_world() -> dict:
     result = await return_hello_world()
     return result
 
